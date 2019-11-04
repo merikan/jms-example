@@ -1,0 +1,10 @@
+#debug: true
+artemis:
+  broker-url: vm://0
+
+
+spring:
+  sleuth:
+    messaging:
+      jms:
+#        enabled: false
