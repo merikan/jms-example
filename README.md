@@ -30,7 +30,19 @@ Caused by: java.lang.IllegalStateException:
     Overriding bean of same name declared in: class path resource [com/merikan/jmsexample/jms/JmsConfig.class]
 ```
 
-The `ActiveMQConnectionFactory` is no longer a `javax.jms.ConnectionFactory` instead it is a `org.springframework.cloud.sleuth.instrument.messaging.LazyXAConnectionFactory`.   
-When looking at the [Sleuth code](https://github.com/spring-cloud/spring-cloud-sleuth/blob/558900155adb1ae4a732cf450c216e2ff04a3f90/spring-cloud-sleuth-core/src/main/java/org/springframework/cloud/sleuth/instrument/messaging/TracingConnectionFactoryBeanPostProcessor.java#L73) we can see that a `LazyXAConnectionFactory` is returned instead of `LazyConnectionFactory`
+The `ActiveMQConnectionFactory` is no longer a `javax.jms.ConnectionFactory` instead it is a `org.springframework.cloud.sleuth.instrument.messaging.LazyXAConnectionFactory`.
+Our `ActiveMQConnectionFactory` implements both `ConnectionFactory` and `XAConnectionFactory`,  
+so when looking at the [Sleuth code](https://github.com/spring-cloud/spring-cloud-sleuth/blob/558900155adb1ae4a732cf450c216e2ff04a3f90/spring-cloud-sleuth-core/src/main/java/org/springframework/cloud/sleuth/instrument/messaging/TracingConnectionFactoryBeanPostProcessor.java#L73)
+we can see that a `LazyXAConnectionFactory` is returned instead of `LazyConnectionFactory`. 
 
-I tried using Spring-Boot v2.1.9 and v2.2.0 but with no success. 
+## Solution   
+Instead of creating a bean of type `ActiveMQConnectionFactory` we can wrap it in a `CachingConnectionFactory` class instead. Sleuth will now instrument a `LazyConnectionFactory` 
+since `CachingConnectionFactory` only implements `ConnectionFactory` and not `XAConnectionFactory`.
+```java
+@Bean
+public ConnectionFactory senderConnectionFactory() {
+    CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
+    connectionFactory.setTargetConnectionFactory(new ActiveMQConnectionFactory(brokerUrl));
+    return connectionFactory;
+}
+```

@@ -20,17 +20,18 @@ public class JmsConfig {
 
     @Bean
     public ConnectionFactory receiverConnectionFactory() {
-        return new ActiveMQConnectionFactory(brokerUrl);
+        CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
+        connectionFactory.setTargetConnectionFactory(new ActiveMQConnectionFactory(brokerUrl));
+        return connectionFactory;
     }
 
     @Bean
-    public DefaultJmsListenerContainerFactory jmsListenerContainerFactory() {
+    public DefaultJmsListenerContainerFactory jmsListenerContainerFactory(ConnectionFactory receiverConnectionFactory) {
         DefaultJmsListenerContainerFactory factory =
                 new DefaultJmsListenerContainerFactory();
-        ConnectionFactory connectionFactory = receiverConnectionFactory();
+        ConnectionFactory connectionFactory = receiverConnectionFactory;
         factory.setConnectionFactory(connectionFactory);
         factory.setConcurrency("3-10");
-
         return factory;
     }
 
@@ -42,13 +43,15 @@ public class JmsConfig {
 
     @Bean
     public ConnectionFactory senderConnectionFactory() {
-        return new ActiveMQConnectionFactory(brokerUrl);
+        CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
+        connectionFactory.setTargetConnectionFactory(new ActiveMQConnectionFactory(brokerUrl));
+        return connectionFactory;
     }
 
 
     @Bean
-    public JmsTemplate senderJmsTemplate() {
-        return new JmsTemplate(senderConnectionFactory());
+    public JmsTemplate senderJmsTemplate(ConnectionFactory senderConnectionFactory) {
+        return new JmsTemplate(senderConnectionFactory);
     }
 
     @Bean
